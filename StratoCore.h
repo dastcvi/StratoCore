@@ -11,6 +11,8 @@
 #define STRATOCORE_H
 
 #include "StratoGroundPort.h"
+#include "XMLReader_v3.h"
+#include "XMLWriter_v4.h"
 #include "Arduino.h"
 #include "HardwareSerial.h"
 #include "WProgram.h"
@@ -22,35 +24,49 @@
 #define MODE_ENTRY  0
 #define MODE_EXIT   255
 
-enum MODE_t {
-    MODE_SB, // standby
-    MODE_FL, // flight
-    MODE_LP, // low power
-    MODE_SA, // safety
-    MODE_EF  // end of flight
-};
-
 class StratoCore {
 public:
     // constructors/destructors
     StratoCore();
     ~StratoCore() { };
 
-    // public interface
+    // public interface functions
     void RunMode();
-protected: // available to StratoCore and child classes
-    // Mode and state control
-    MODE_t inst_mode;
+    void Router();
+
+protected: // available to StratoCore and instrument classes
+    // Set to determine the substate within a mode (always set to MODE_ENTRY when a mode is started)
     uint8_t inst_substate;
 
-    // Pure virtual mode functions (implemented entirely in child class)
+    // Pure virtual mode functions (implemented entirely in instrument classes)
+    // Using these, the StratoCore can call the mode functions of derived classes, but the
+    // derived classes (other instruments) must implement them themselves
     virtual void StandbyMode() = 0;
     virtual void FlightMode() = 0;
     virtual void LowPowerMode() = 0;
     virtual void SafetyMode() = 0;
     virtual void EndOfFlightMode() = 0;
 
+    // Other pure virtual functions that instrument classes must implement (even if empty)
+    // virtual void TCHandler(TCtype) = 0;
+    // virtual void InstLoopFunction() = 0;
+
 private: // available only to StratoCore
+    void RouteRXMessage(ZephyrMessage_t message);
+    
+    // Only the Zephyr can change mode, unless 2 hr pass without comms (REQ461) -> Safety
+    // InstMode_t defined in XMLReader
+    InstMode_t inst_mode;
+    InstMode_t new_inst_mode; // set this to change mode, StratoCore handles the rest
+
+    // Array of mode functions indexed by InstMode_t enum in XMLReader (don't change order)
+	void (StratoCore::*mode_array[NUM_MODES])(void) = {
+		&StratoCore::StandbyMode,
+		&StratoCore::FlightMode,
+		&StratoCore::LowPowerMode,
+		&StratoCore::SafetyMode,
+		&StratoCore::EndOfFlightMode
+	};
 };
 
 #endif /* STRATOCORE_H */

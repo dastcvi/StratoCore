@@ -11,6 +11,7 @@
 #ifndef STRATOGROUNDPORT_H
 #define STRATOGROUNDPORT_H
 
+#include "XMLReader_v3.h"
 #include "Arduino.h"
 #include "HardwareSerial.h"
 #include "WProgram.h"
@@ -27,9 +28,14 @@ enum LOG_LEVEL_t {
     LOG_NONE    = 3
 };
 
+// functions for logging information to the terminal at different levels
+// to add values to print, either use a char array and snprintf, or
+// create a String, and log this way: log_xxxx(string_name.c_str())
 void log_debug(const char * log_info);
 void log_nominal(const char * log_info);
 void log_error(const char * log_info);
-void print_log(LOG_LEVEL_t log_level, const char * log_info);
+
+// get user commands from the terminal
+ZephyrMessage_t ground_port(void);
 
 #endif /* STRATOGROUNDPORT_H */

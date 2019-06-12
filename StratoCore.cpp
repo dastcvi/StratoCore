@@ -11,34 +11,66 @@
 
 StratoCore::StratoCore()
 {
-    inst_mode = MODE_SB; // always boot to standby
+    inst_mode = STANDBY; // always boot to standby
+    new_inst_mode = STANDBY;
     inst_substate = MODE_ENTRY; // substate starts as mode entry
 }
 
 void StratoCore::RunMode()
 {
-    // todo: set inst_substate to MODE_ENTRY on every switch
-    
-    switch (inst_mode) {
-    case MODE_SB:
-        StandbyMode();
+    // check for a new mode
+    if (inst_mode != new_inst_mode) {
+        // call the last mode after setting the substate to exit
+        inst_substate = MODE_EXIT;
+        (this->*(mode_array[inst_mode]))();
+
+        // update the mode and set the substate to entry
+        inst_mode = new_inst_mode;
+        inst_substate = MODE_ENTRY;
+    }
+
+    // run the current mode
+    (this->*(mode_array[inst_mode]))();
+}
+
+void StratoCore::Router()
+{
+    // check for and route any message from the ground port
+    ZephyrMessage_t message = ground_port();
+    if (message != NONE) RouteRXMessage(message);
+
+    // todo: check XMLReader for messages, send them to RouteRXMessage
+}
+
+void StratoCore::RouteRXMessage(ZephyrMessage_t message)
+{
+    switch (message) {
+    case IM:
+        // todo: send IMAck (here or elsewhere)
+        new_inst_mode = reader_mode;
         break;
-    case MODE_FL:
-        FlightMode();
+    case GPS:
+        // to time/date handler
         break;
-    case MODE_LP:
-        LowPowerMode();
+    case SW:
+        // todo: what to do
         break;
-    case MODE_SA:
-        SafetyMode();
+    case TC:
+        // to instrument TC handler
         break;
-    case MODE_EF:
-        EndOfFlightMode();
+    case SAck:
+        // todo: ack handler
+        break;
+    case RAAck:
+        // todo: ack handler
+        break;
+    case TMAck:
+        // todo: ack handler
+        break;
+    case NONE:
         break;
     default:
-        // todo: log error
-        inst_mode = MODE_SB;
-        StandbyMode();
+        log_error("Unknown message to route");
         break;
     }
 }
