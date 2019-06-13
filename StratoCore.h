@@ -60,6 +60,7 @@ protected: // available to StratoCore and instrument classes
 
 private: // available only to StratoCore
     void RouteRXMessage(ZephyrMessage_t message);
+    void UpdateTime();
     
     // Only the Zephyr can change mode, unless 2 hr pass without comms (REQ461) -> Safety
     // InstMode_t defined in XMLReader

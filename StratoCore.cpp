@@ -8,6 +8,7 @@
  */
 
 #include "StratoCore.h"
+#include "TimeLib.h"
 
 StratoCore::StratoCore(Print * zephyr_serial, Instrument_t instrument)
     : zephyrTX(zephyr_serial, &Serial)
@@ -61,7 +62,8 @@ void StratoCore::Router()
     if (message != NONE) RouteRXMessage(message);
 
     // todo: thread safety! consider handling multiple messages per loop
-    zephyrRX.getNew();
+    // todo: make reader more robust! ensure all bad messages are ignored
+    while (PARSING == zephyrRX.getNew());
     if (zephyrRX.dataValid()) {
         RouteRXMessage(zephyr_message); // global from XMLReader
     }
@@ -77,7 +79,7 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
         zephyrTX.IMAck(instAck);
         break;
     case GPS:
-        // to time/date handler
+        UpdateTime();
         break;
     case SW:
         // set the substate to shutdown and let the mode functions handle it
@@ -93,6 +95,7 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
         // todo: ack handler
         break;
     case NONE:
+        // nothing to do
         break;
     default:
         log_error("Unknown message to route");
@@ -105,4 +108,42 @@ void StratoCore::TakeZephyrByte(uint8_t rx_char)
 {
     // todo: ensure thread safety!
     zephyrRX.putChar(rx_char);
+}
+
+void StratoCore::UpdateTime()
+{
+    // hours, minutes, seconds, date, month years
+    String temp_str = "";
+    temp_str += (char)Time[0];
+    temp_str += (char)Time[1];
+    uint16_t hours = temp_str.toInt();
+    temp_str = "";
+    temp_str += (char)Time[2];
+    temp_str += (char)Time[3];
+    uint16_t minutes = temp_str.toInt();
+    temp_str = "";
+    temp_str += (char)Time[4];
+    temp_str += (char)Time[5];
+    uint16_t seconds = temp_str.toInt();
+    temp_str = "";
+    temp_str += (char)Date[6];
+    temp_str += (char)Date[7];
+    uint16_t days = temp_str.toInt();
+    temp_str = "";
+    temp_str += (char)Date[4];
+    temp_str += (char)Date[5];
+    uint16_t months = temp_str.toInt();
+    temp_str = "";
+    temp_str += (char)Date[0];
+    temp_str += (char)Date[1];
+    temp_str += (char)Date[2];
+    temp_str += (char)Date[3];
+    uint16_t years = temp_str.toInt();
+    noInterrupts();
+    setTime(hours, minutes, seconds, days, months, years);
+    interrupts();
+
+    temp_str = " " + String(hours) + ":" + String(minutes) + ":" + String(seconds);
+    temp_str += ", " + String(months) + "/" + String(days) + "/" + String(years);
+    log_nominal(temp_str.c_str());
 }
