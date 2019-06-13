@@ -175,5 +175,6 @@ ZephyrMessage_t execute_command()
 
     current_command = '\0';
     command_ready = false;
+    instAck = 1; // need to spoof reader
     return message;
 }

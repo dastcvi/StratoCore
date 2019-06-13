@@ -19,22 +19,30 @@
 #include <stdint.h>
 
 // an instrument can define up to 256 states (uint8_t) for each mode, provided that
-// state 0 is entry, state 255 is exit, and the protected inst_substate variable
-// is used. StratoCore will set inst_substate=0 on every mode switch
-#define MODE_ENTRY  0
-#define MODE_EXIT   255
+// state 0 is entry, state 254 is the shutdown warning state, 255 is exit, and the
+// protected inst_substate variable is used. On a mode switch, StratoCore will run
+// the old mode once in MODE_EXIT before starting the new mode in MODE_ENTRY. In the
+// case that a shutdown warning is received, StratoCore will set the state to MODE_SHUTDOWN
+#define MODE_ENTRY      0
+#define MODE_SHUTDOWN   254
+#define MODE_EXIT       255
 
 class StratoCore {
 public:
     // constructors/destructors
-    StratoCore();
+    StratoCore(Print * zephyr_serial, Instrument_t instrument);
     ~StratoCore() { };
 
     // public interface functions
+    void Initialize();
     void RunMode();
     void Router();
+    void TakeZephyrByte(uint8_t rx_char);
 
 protected: // available to StratoCore and instrument classes
+    XMLWriter_v4 zephyrTX;
+    XMLReader_v3 zephyrRX;
+
     // Set to determine the substate within a mode (always set to MODE_ENTRY when a mode is started)
     uint8_t inst_substate;
 
@@ -47,9 +55,8 @@ protected: // available to StratoCore and instrument classes
     virtual void SafetyMode() = 0;
     virtual void EndOfFlightMode() = 0;
 
-    // Other pure virtual functions that instrument classes must implement (even if empty)
-    // virtual void TCHandler(TCtype) = 0;
-    // virtual void InstLoopFunction() = 0;
+    // Pure virtual function definition for the instrument telecommand handler - returns ACK/NAK
+    virtual bool TCHandler(Telecommand_t telecommand) = 0;
 
 private: // available only to StratoCore
     void RouteRXMessage(ZephyrMessage_t message);

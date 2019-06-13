@@ -18,7 +18,7 @@
 #include <stdint.h>
 
 // display all logs at or above this level
-#define LOG_LEVEL   LOG_DEBUG
+#define LOG_LEVEL   LOG_NOMINAL
 
 // importance levels in increasing order
 enum LOG_LEVEL_t {

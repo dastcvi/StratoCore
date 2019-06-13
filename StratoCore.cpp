@@ -9,11 +9,32 @@
 
 #include "StratoCore.h"
 
-StratoCore::StratoCore()
+StratoCore::StratoCore(Print * zephyr_serial, Instrument_t instrument)
+    : zephyrTX(zephyr_serial, &Serial)
+    , zephyrRX(zephyr_serial, &Serial, instrument)
 {
     inst_mode = STANDBY; // always boot to standby
     new_inst_mode = STANDBY;
     inst_substate = MODE_ENTRY; // substate starts as mode entry
+
+    switch (instrument) {
+    case FLOATS:
+        zephyrTX.setDevId("FLOATS");
+        break;
+    case RACHUTS:
+        zephyrTX.setDevId("RACHUTS");
+        break;
+    case LPC:
+        zephyrTX.setDevId("LPC");
+        break;
+    default:
+        break;
+    }
+}
+
+void StratoCore::Initialize()
+{
+    ; // currently nothing to initialize
 }
 
 void StratoCore::RunMode()
@@ -39,31 +60,35 @@ void StratoCore::Router()
     ZephyrMessage_t message = ground_port();
     if (message != NONE) RouteRXMessage(message);
 
-    // todo: check XMLReader for messages, send them to RouteRXMessage
+    // todo: thread safety! consider handling multiple messages per loop
+    zephyrRX.getNew();
+    if (zephyrRX.dataValid()) {
+        RouteRXMessage(zephyr_message); // global from XMLReader
+    }
 }
 
 void StratoCore::RouteRXMessage(ZephyrMessage_t message)
 {
     switch (message) {
     case IM:
-        // todo: send IMAck (here or elsewhere)
-        new_inst_mode = reader_mode;
+        if (instAck) { // message ok
+            new_inst_mode = reader_mode;
+        }
+        zephyrTX.IMAck(instAck);
         break;
     case GPS:
         // to time/date handler
         break;
     case SW:
-        // todo: what to do
+        // set the substate to shutdown and let the mode functions handle it
+        inst_substate = MODE_SHUTDOWN;
         break;
     case TC:
-        // to instrument TC handler
+        // todo: finish instrument TC handler design
+        zephyrTX.TCAck(TCHandler(zephyr_tc));
         break;
     case SAck:
-        // todo: ack handler
-        break;
     case RAAck:
-        // todo: ack handler
-        break;
     case TMAck:
         // todo: ack handler
         break;
@@ -73,4 +98,11 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
         log_error("Unknown message to route");
         break;
     }
+}
+
+
+void StratoCore::TakeZephyrByte(uint8_t rx_char)
+{
+    // todo: ensure thread safety!
+    zephyrRX.putChar(rx_char);
 }
