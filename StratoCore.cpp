@@ -46,6 +46,9 @@ void StratoCore::RunMode()
         inst_substate = MODE_EXIT;
         (this->*(mode_array[inst_mode]))();
 
+        // clear any scheduled items from the old mode
+        scheduler.ClearSchedule();
+
         // update the mode and set the substate to entry
         inst_mode = new_inst_mode;
         inst_substate = MODE_ENTRY;
@@ -55,7 +58,7 @@ void StratoCore::RunMode()
     (this->*(mode_array[inst_mode]))();
 }
 
-void StratoCore::Router()
+void StratoCore::RunRouter()
 {
     // check for and route any message from the ground port
     ZephyrMessage_t message = ground_port();
@@ -103,6 +106,15 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
     }
 }
 
+void StratoCore::RunScheduler()
+{
+    uint8_t scheduled_action = scheduler.CheckSchedule();
+
+    while (scheduled_action != NO_SCHEDULED_ACTION) {
+        ActionHandler(scheduled_action);
+        scheduled_action = scheduler.CheckSchedule();
+    }
+}
 
 void StratoCore::TakeZephyrByte(uint8_t rx_char)
 {
