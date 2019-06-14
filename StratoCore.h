@@ -11,6 +11,7 @@
 #define STRATOCORE_H
 
 #include "StratoGroundPort.h"
+#include "StratoScheduler.h"
 #include "XMLReader_v3.h"
 #include "XMLWriter_v4.h"
 #include "Arduino.h"
@@ -36,12 +37,16 @@ public:
     // public interface functions
     void Initialize();
     void RunMode();
-    void Router();
+    void RunRouter();
+    void RunScheduler();
     void TakeZephyrByte(uint8_t rx_char);
 
 protected: // available to StratoCore and instrument classes
     XMLWriter_v4 zephyrTX;
     XMLReader_v3 zephyrRX;
+
+    // Scheduler
+    StratoScheduler scheduler;
 
     // Set to determine the substate within a mode (always set to MODE_ENTRY when a mode is started)
     uint8_t inst_substate;
@@ -57,6 +62,7 @@ protected: // available to StratoCore and instrument classes
 
     // Pure virtual function definition for the instrument telecommand handler - returns ACK/NAK
     virtual bool TCHandler(Telecommand_t telecommand) = 0;
+    virtual void ActionHandler(uint8_t action) = 0;
 
 private: // available only to StratoCore
     void RouteRXMessage(ZephyrMessage_t message);
