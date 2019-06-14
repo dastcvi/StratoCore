@@ -11,6 +11,7 @@
 #define STRATOCORE_H
 
 #include "StratoGroundPort.h"
+#include "StratoScheduler.h"
 #include "XMLReader_v3.h"
 #include "XMLWriter_v4.h"
 #include "Arduino.h"
