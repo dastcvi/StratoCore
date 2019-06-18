@@ -35,7 +35,8 @@ public:
     ~StratoCore() { };
 
     // public interface functions
-    void Initialize();
+    void InitializeWatchdog();
+    void KickWatchdog();
     void RunMode();
     void RunRouter();
     void RunScheduler();

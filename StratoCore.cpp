@@ -33,9 +33,34 @@ StratoCore::StratoCore(Print * zephyr_serial, Instrument_t instrument)
     }
 }
 
-void StratoCore::Initialize()
+// initialize the watchdog using the 1kHz LPO clock source to achieve a 10s WDOG
+void StratoCore::InitializeWatchdog()
 {
-    ; // currently nothing to initialize
+    noInterrupts(); // disable interrupts
+
+    // unlock
+    WDOG_UNLOCK = WDOG_UNLOCK_SEQ1; // unlock access to WDOG registers
+    WDOG_UNLOCK = WDOG_UNLOCK_SEQ2;
+    delayMicroseconds(1);
+
+    WDOG_PRESC = 0; // prescale = 1 (bits 11-9)
+
+    WDOG_TOVALH = 0x0000; // 0
+    WDOG_TOVALL = 0x2710; // 10000 => 10s WDOG period
+
+    // WDOG_STCTRLH &= !WDOG_STCTRLH_CLKSRC; // use the 1kHz LPO clock
+    // WDOG_STCTRLH |= WDOG_STCTRLH_WDOGEN; // enable the watchdog
+    WDOG_STCTRLH = 0x01D1;
+
+    interrupts(); // enable interrupts
+}
+
+void StratoCore::KickWatchdog()
+{
+    noInterrupts();
+    WDOG_REFRESH = 0xA602;
+    WDOG_REFRESH = 0xB480;
+    interrupts();
 }
 
 void StratoCore::RunMode()
@@ -74,11 +99,17 @@ void StratoCore::RunRouter()
 
 void StratoCore::RouteRXMessage(ZephyrMessage_t message)
 {
+    // ignore bad messages and send NAKs when applicable
+    if (!instAck) {
+        if (message == IM) {
+            zephyrTX.IMAck(instAck);
+        }
+        return;
+    }
+
     switch (message) {
     case IM:
-        if (instAck) { // message ok
-            new_inst_mode = reader_mode;
-        }
+        new_inst_mode = reader_mode;
         zephyrTX.IMAck(instAck);
         break;
     case GPS:
@@ -95,15 +126,17 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
     case SAck:
     case RAAck:
     case TMAck:
-        // todo: ack handler
+        // todo: ack manager
         break;
     case NONE:
-        // nothing to do
+        // nothing to do, shouldn't get here
         break;
     default:
         log_error("Unknown message to route");
         break;
     }
+
+    // todo: log zephyr comms
 }
 
 void StratoCore::RunScheduler()

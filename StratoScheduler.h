@@ -35,7 +35,7 @@ public:
     bool AddAction(uint8_t action, TimeElements exact_time);
 
     // todo: consider adding adjustment function for when GPS time update is greater than xx seconds
-    // in order to ensure that the schedule isn't messed up
+    // in order to ensure that the schedule isn't messed up when time changes underneath it
 
     // called after every mode switch
     void ClearSchedule();
