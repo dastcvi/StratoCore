@@ -42,6 +42,9 @@ public:
     void RunScheduler();
     void TakeZephyrByte(uint8_t rx_char);
 
+    // Pure virtual function definition for the instrument loop function, called at the end of each loop publicly
+    virtual void InstrumentLoop() = 0;
+
 protected: // available to StratoCore and instrument classes
     XMLWriter_v4 zephyrTX;
     XMLReader_v3 zephyrRX;
@@ -63,7 +66,26 @@ protected: // available to StratoCore and instrument classes
 
     // Pure virtual function definition for the instrument telecommand handler - returns ACK/NAK
     virtual bool TCHandler(Telecommand_t telecommand) = 0;
+
+    // Pure virtual function definition for the instrument action handler
     virtual void ActionHandler(uint8_t action) = 0;
+
+    enum ACK_t {
+        NAK,
+        ACK,
+        NO_ACK
+    };
+
+    // ack status flags to be checked and cleared by the instrument for each corresponding message
+    ACK_t RA_ack_flag;
+    ACK_t S_ack_flag;
+    ACK_t TM_ack_flag;
+
+    // Type for action flags used by instruments
+    struct ActionFlag_t {
+        bool flag_value;
+        uint8_t stale_count;
+    };
 
 private: // available only to StratoCore
     void RouteRXMessage(ZephyrMessage_t message);

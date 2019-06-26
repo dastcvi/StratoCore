@@ -18,6 +18,10 @@ StratoCore::StratoCore(Print * zephyr_serial, Instrument_t instrument)
     new_inst_mode = STANDBY;
     inst_substate = MODE_ENTRY; // substate starts as mode entry
 
+    RA_ack_flag = NO_ACK;
+    S_ack_flag = NO_ACK;
+    TM_ack_flag = NO_ACK;
+
     switch (instrument) {
     case FLOATS:
         zephyrTX.setDevId("FLOATS");
@@ -43,13 +47,12 @@ void StratoCore::InitializeWatchdog()
     WDOG_UNLOCK = WDOG_UNLOCK_SEQ2;
     delayMicroseconds(1);
 
-    WDOG_PRESC = 0; // prescale = 1 (bits 11-9)
+    WDOG_PRESC = 0; // no prescaling of clock
 
-    WDOG_TOVALH = 0x0000; // 0
-    WDOG_TOVALL = 0x2710; // 10000 => 10s WDOG period
+    WDOG_TOVALH = 0x0000; // upper bits set to 0
+    WDOG_TOVALL = 0x2710; // 10000 counter at 1 kHz => 10s WDOG period
 
-    // WDOG_STCTRLH &= !WDOG_STCTRLH_CLKSRC; // use the 1kHz LPO clock
-    // WDOG_STCTRLH |= WDOG_STCTRLH_WDOGEN; // enable the watchdog
+    // in one write, enable the watchdog using the 1kHz LPO clock source 
     WDOG_STCTRLH = 0x01D1;
 
     interrupts(); // enable interrupts
@@ -124,12 +127,15 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
         zephyrTX.TCAck(TCHandler(zephyr_tc));
         break;
     case SAck:
+        S_ack_flag = (zephAck == 1) ? ACK : NAK;
+        break;
     case RAAck:
+        RA_ack_flag = (zephAck == 1) ? ACK : NAK;
+        break;
     case TMAck:
-        // todo: ack manager
+        TM_ack_flag = (zephAck == 1) ? ACK : NAK;
         break;
     case NONE:
-        // nothing to do, shouldn't get here
         break;
     default:
         log_error("Unknown message to route");
