@@ -45,7 +45,7 @@ public:
     // Pure virtual function definition for the instrument loop function, called at the end of each loop publicly
     virtual void InstrumentLoop() = 0;
 
-protected: // available to StratoCore and instrument classes
+//protected: // available to StratoCore and instrument classes
     XMLWriter_v4 zephyrTX;
     XMLReader_v3 zephyrRX;
 

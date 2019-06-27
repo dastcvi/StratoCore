@@ -12,19 +12,28 @@
 
 #include <TimeLib.h>
 #include <stdint.h>
-#include <queue>
-#include <vector>
-#include <functional>
 
 #define NO_SCHEDULED_ACTION 0
-#define MAX_SCHEDULE_SIZE   32
+#define MAX_SCHEDULE_SIZE   ((uint8_t) 32) // must be 0-255
 
-using namespace std;
+// define a struct for use only as a container for scheduled actions
+struct ScheduleItem_t {
+    // constructor
+    ScheduleItem_t(uint8_t act, time_t t, bool e, ScheduleItem_t * p, ScheduleItem_t * n) 
+        : action(act), time(t), exact_time (e), prev(p), next(n) { }
+
+    // data
+    uint8_t action;
+    time_t time;
+    bool exact_time; // scheduled exact or relative?
+    ScheduleItem_t * prev;
+    ScheduleItem_t * next;
+};
 
 class StratoScheduler {
 public:
     // empty constructors and destructors
-    StratoScheduler() { };
+    StratoScheduler();
     ~StratoScheduler() { };
 
     // returns 0 if no action ready, or the id if one is ready
@@ -34,31 +43,19 @@ public:
     bool AddAction(uint8_t action, time_t seconds_from_now);
     bool AddAction(uint8_t action, TimeElements exact_time);
 
-    // todo: consider adding adjustment function for when GPS time update is greater than xx seconds
-    // in order to ensure that the schedule isn't messed up when time changes underneath it
+    // changes the scheduled times according to a number of seconds to adjust
+    void UpdateScheduleTime(int32_t seconds_adjustment);
 
     // called after every mode switch
     void ClearSchedule();
 
 private:
-    // define a private struct for use only as a container for scheduled actions
-    struct ScheduleItem_t {
-        uint8_t action;
-        time_t time;
-        
-        // constructor to allow use of priority_queue emplace function
-        ScheduleItem_t(uint8_t a, time_t t) : action(a), time(t) { }
-    };
 
-    // this private struct serves only to provide the operator that allows the priority queue to sort actions
-    struct CompareItems { 
-        bool operator()(ScheduleItem_t const& i1, ScheduleItem_t const& i2) {
-            return i1.time > i2.time; 
-        }
-    }; 
+    bool SchedulePush(uint8_t action, time_t schedule_time, bool exact);
+    void SchedulePop(); // remove (and delete!) the first item
 
-    // define a priority queue for sorting and keeping all of the scheduled items
-    priority_queue<ScheduleItem_t, vector<ScheduleItem_t>, CompareItems> schedule_queue;
+    uint8_t schedule_size; // num items in schedule
+    ScheduleItem_t * schedule_top; // pointer to first element
 };
 
 #endif
