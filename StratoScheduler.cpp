@@ -20,10 +20,10 @@ uint8_t StratoScheduler::CheckSchedule()
     uint8_t action = NO_SCHEDULED_ACTION;
 
     // if it's time for the top action, set it and remove it from the queue
-    // if (schedule_queue.size() > 0 && schedule_queue.top().time <= now()) {
-    //     action = schedule_queue.top().action;
-    //     schedule_queue.pop();
-    // }
+    if (schedule_size > 0 && schedule_top->time <= now()) {
+        action = schedule_top->action;
+        SchedulePop();
+    }
 
     return action;
 }
@@ -37,7 +37,7 @@ bool StratoScheduler::AddAction(uint8_t action, time_t seconds_from_now)
     }
 
     // calculate the time_t value given the current time, place on the queue
-    SchedulePush(action, now() + seconds_from_now);
+    SchedulePush(action, now() + seconds_from_now, false);
     return true;
 }
 
@@ -50,7 +50,7 @@ bool StratoScheduler::AddAction(uint8_t action, TimeElements exact_time)
     }
 
     // place on the queue
-    SchedulePush(action, makeTime(exact_time));
+    SchedulePush(action, makeTime(exact_time), true);
     return true;
 }
 
@@ -62,14 +62,28 @@ void StratoScheduler::ClearSchedule()
     }
 }
 
+void StratoScheduler::UpdateScheduleTime(int32_t seconds_adjustment)
+{
+    ScheduleItem_t * itr = schedule_top;
+
+    // adjust each item
+    while (itr != NULL) {
+        // adjust only if scheduled relatively
+        if (!itr->exact_time) {
+            itr->time += seconds_adjustment;
+        }
+        itr = itr->next;
+    }
+}
+
 // ------- schedule queue functions -------
 
-bool StratoScheduler::SchedulePush(uint8_t action, time_t schedule_time)
+bool StratoScheduler::SchedulePush(uint8_t action, time_t schedule_time, bool exact)
 {
     if (schedule_size >= MAX_SCHEDULE_SIZE) return false;
 
     // create the new action
-    ScheduleItem_t * new_item = new ScheduleItem_t(action, schedule_time, NULL, NULL);
+    ScheduleItem_t * new_item = new ScheduleItem_t(action, schedule_time, exact, NULL, NULL);
 
     // check that it's good
     if (new_item == NULL) return false;
@@ -110,15 +124,7 @@ bool StratoScheduler::SchedulePush(uint8_t action, time_t schedule_time)
     return true;
 }
 
-ScheduleItem_t * StratoScheduler::SchedulePeek()
-{
-    if (schedule_size == 0) {
-        return NULL;
-    } else {
-        return schedule_top;
-    }
-}
-
+// remove and delete the first item
 void StratoScheduler::SchedulePop()
 {
     if (schedule_size == 0) return;

@@ -19,11 +19,13 @@
 // define a struct for use only as a container for scheduled actions
 struct ScheduleItem_t {
     // constructor
-    ScheduleItem_t(uint8_t act, time_t t, ScheduleItem_t * p, ScheduleItem_t * n) : action(act), time(t), prev(p), next(n) { }
+    ScheduleItem_t(uint8_t act, time_t t, bool e, ScheduleItem_t * p, ScheduleItem_t * n) 
+        : action(act), time(t), exact_time (e), prev(p), next(n) { }
 
     // data
     uint8_t action;
     time_t time;
+    bool exact_time; // scheduled exact or relative?
     ScheduleItem_t * prev;
     ScheduleItem_t * next;
 };
@@ -41,17 +43,15 @@ public:
     bool AddAction(uint8_t action, time_t seconds_from_now);
     bool AddAction(uint8_t action, TimeElements exact_time);
 
-    // todo: consider adding adjustment function for when GPS time update is greater than xx seconds
-    // in order to ensure that the schedule isn't messed up when time changes underneath it
-    // void UpdateScheduleTime();
+    // changes the scheduled times according to a number of seconds to adjust
+    void UpdateScheduleTime(int32_t seconds_adjustment);
 
     // called after every mode switch
     void ClearSchedule();
 
-//private:
+private:
 
-    bool SchedulePush(uint8_t action, time_t schedule_time); // add to schedule
-    ScheduleItem_t * SchedulePeek(); // look at first item without removing
+    bool SchedulePush(uint8_t action, time_t schedule_time, bool exact);
     void SchedulePop(); // remove (and delete!) the first item
 
     uint8_t schedule_size; // num items in schedule
@@ -59,73 +59,3 @@ public:
 };
 
 #endif
-
-//   -- test code -- 
- 
-//   delay(1000);
-//   ScheduleItem_t * tmp;
-  
-//   Serial.println("beginning");
-//   Serial.println(strato.scheduler.schedule_size);
-//   strato.scheduler.SchedulePop();
-//   Serial.println(strato.scheduler.schedule_size);
-//   strato.scheduler.SchedulePush(0, 10);
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePush(0, 11);
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePush(0, 9);
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePop();
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePop();
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePop();
-//   strato.scheduler.SchedulePush(0, 12);
-//   strato.scheduler.SchedulePush(0, 12);
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePush(0, 8);
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePush(0, 13);
-//   strato.scheduler.SchedulePush(0, 13);
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePush(0, 7);
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePop();
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePop();
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePop();
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePop();
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePop();
-//   tmp = strato.scheduler.SchedulePeek();
-//   Serial.println(tmp->time);
-//   strato.scheduler.SchedulePop();
-//   Serial.println(strato.scheduler.schedule_size);
-//   for (int i = 0; i < 35; i++) {
-//     if (i == 4) {
-//       strato.scheduler.SchedulePush(0,1);
-//       continue;
-//     } else if (i == 6) {
-//       strato.scheduler.SchedulePush(0,3);
-//       continue;
-//     }
-//     if (!strato.scheduler.SchedulePush(0,2)) Serial.println(i);
-//   }
-//   strato.scheduler.ClearSchedule();
-//   Serial.println(strato.scheduler.schedule_size);
-//   // -- 

@@ -163,38 +163,53 @@ void StratoCore::TakeZephyrByte(uint8_t rx_char)
 
 void StratoCore::UpdateTime()
 {
+    int32_t before, new_time, difference;
+    TimeElements new_time_elements;
+
     // hours, minutes, seconds, date, month years
     String temp_str = "";
     temp_str += (char)Time[0];
     temp_str += (char)Time[1];
-    uint16_t hours = temp_str.toInt();
+    new_time_elements.Hour = (uint8_t) temp_str.toInt();
     temp_str = "";
     temp_str += (char)Time[2];
     temp_str += (char)Time[3];
-    uint16_t minutes = temp_str.toInt();
+    new_time_elements.Minute = (uint8_t) temp_str.toInt();
     temp_str = "";
     temp_str += (char)Time[4];
     temp_str += (char)Time[5];
-    uint16_t seconds = temp_str.toInt();
+    new_time_elements.Second = (uint8_t) temp_str.toInt();
     temp_str = "";
     temp_str += (char)Date[6];
     temp_str += (char)Date[7];
-    uint16_t days = temp_str.toInt();
+    new_time_elements.Day = (uint8_t) temp_str.toInt();
     temp_str = "";
     temp_str += (char)Date[4];
     temp_str += (char)Date[5];
-    uint16_t months = temp_str.toInt();
+    new_time_elements.Month = (uint8_t) temp_str.toInt();
     temp_str = "";
     temp_str += (char)Date[0];
     temp_str += (char)Date[1];
     temp_str += (char)Date[2];
     temp_str += (char)Date[3];
-    uint16_t years = temp_str.toInt();
-    noInterrupts();
-    setTime(hours, minutes, seconds, days, months, years);
-    interrupts();
+    new_time_elements.Year = (uint8_t) (temp_str.toInt() - 1970);
 
-    temp_str = " " + String(hours) + ":" + String(minutes) + ":" + String(seconds);
-    temp_str += ", " + String(months) + "/" + String(days) + "/" + String(years);
+    before = now();
+    new_time = makeTime(new_time_elements);
+    difference = new_time - before;
+    
+    // if the time difference is greater than 3s, update
+    if (difference > 3 || difference < -3) {
+        log_nominal("Correcting time drift");
+
+        noInterrupts();
+        setTime(new_time);
+        interrupts();
+
+        scheduler.UpdateScheduleTime(difference);
+    }
+    
+    temp_str = " " + String(new_time_elements.Hour) + ":" + String(new_time_elements.Minute) + ":" + String(new_time_elements.Second);
+    temp_str += ", " + String(new_time_elements.Month) + "/" + String(new_time_elements.Day) + "/" + String(new_time_elements.Year + 1970);
     log_nominal(temp_str.c_str());
 }
