@@ -28,6 +28,12 @@
 #define MODE_SHUTDOWN   254
 #define MODE_EXIT       255
 
+// maximum amount onboard time can be off from Zephyr GPS time without being updated
+#define MAX_TIME_DRIFT  (2)
+
+// number of seconds without zephyr comms after which safety mode is entered
+#define ZEPHYR_TIMEOUT  120 // 3600
+
 class StratoCore {
 public:
     // constructors/destructors
@@ -90,6 +96,8 @@ public:
 private: // available only to StratoCore
     void RouteRXMessage(ZephyrMessage_t message);
     void UpdateTime();
+
+    time_t last_zephyr;
     
     // Only the Zephyr can change mode, unless 2 hr pass without comms (REQ461) -> Safety
     // InstMode_t defined in XMLReader

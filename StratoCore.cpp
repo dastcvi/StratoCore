@@ -35,6 +35,9 @@ StratoCore::StratoCore(Print * zephyr_serial, Instrument_t instrument)
     default:
         break;
     }
+
+    // placement of this line here automatically captures GPS time updates
+    last_zephyr = now();
 }
 
 // initialize the watchdog using the 1kHz LPO clock source to achieve a 10s WDOG
@@ -98,6 +101,11 @@ void StratoCore::RunRouter()
     if (zephyrRX.dataValid()) {
         RouteRXMessage(zephyr_message); // global from XMLReader
     }
+
+    if (now() > last_zephyr + ZEPHYR_TIMEOUT) {
+        log_error("Zephyr comm loss timeout");
+        new_inst_mode = SAFETY;
+    }
 }
 
 void StratoCore::RouteRXMessage(ZephyrMessage_t message)
@@ -142,7 +150,7 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
         break;
     }
 
-    // todo: log zephyr comms
+    last_zephyr = now();
 }
 
 void StratoCore::RunScheduler()
@@ -198,8 +206,8 @@ void StratoCore::UpdateTime()
     new_time = makeTime(new_time_elements);
     difference = new_time - before;
     
-    // if the time difference is greater than 3s, update
-    if (difference > 3 || difference < -3) {
+    // if the time difference is greater than the configured maximum, update
+    if (difference > MAX_TIME_DRIFT || difference < -MAX_TIME_DRIFT) {
         log_nominal("Correcting time drift");
 
         noInterrupts();
