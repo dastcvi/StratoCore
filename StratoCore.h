@@ -29,10 +29,10 @@
 #define MODE_EXIT       255
 
 // maximum amount onboard time can be off from Zephyr GPS time without being updated
-#define MAX_TIME_DRIFT  (2)
+#define MAX_TIME_DRIFT  (2) // seconds
 
 // number of seconds without zephyr comms after which safety mode is entered
-#define ZEPHYR_TIMEOUT  120 // 3600
+#define ZEPHYR_TIMEOUT  3600 // 3600 s = 2 hrs
 
 class StratoCore {
 public:
@@ -51,7 +51,7 @@ public:
     // Pure virtual function definition for the instrument loop function, called at the end of each loop publicly
     virtual void InstrumentLoop() = 0;
 
-//protected: // available to StratoCore and instrument classes
+protected: // available to StratoCore and instrument classes
     XMLWriter_v4 zephyrTX;
     XMLReader_v3 zephyrRX;
 

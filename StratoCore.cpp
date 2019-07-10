@@ -95,7 +95,7 @@ void StratoCore::RunRouter()
     ZephyrMessage_t message = ground_port();
     if (message != NONE) RouteRXMessage(message);
 
-    // todo: thread safety! consider handling multiple messages per loop
+    // todo: consider handling multiple messages per loop
     // todo: make reader more robust! ensure all bad messages are ignored
     while (PARSING == zephyrRX.getNew());
     if (zephyrRX.dataValid()) {
@@ -131,8 +131,12 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
         inst_substate = MODE_SHUTDOWN;
         break;
     case TC:
-        // todo: finish instrument TC handler design
+        // todo: the reader doesn't actually handle a bad CRC
+        // todo: this design only handles one TC per message (any extra chars after ';' causes loss of message)
+        // todo: sending a TC with no trailing ';' crashes the program (likely watchdog, "crash" called after to many buffer shifts)
+        while (!zephyrRX.readBin()); // finish reading the binary
         zephyrTX.TCAck(TCHandler(zephyr_tc));
+        zephyr_tc = NONE;
         break;
     case SAck:
         S_ack_flag = (zephAck == 1) ? ACK : NAK;
@@ -165,7 +169,6 @@ void StratoCore::RunScheduler()
 
 void StratoCore::TakeZephyrByte(uint8_t rx_char)
 {
-    // todo: ensure thread safety!
     zephyrRX.putChar(rx_char);
 }
 
