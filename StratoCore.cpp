@@ -133,10 +133,9 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
     case TC:
         // todo: the reader doesn't actually handle a bad CRC
         // todo: this design only handles one TC per message (any extra chars after ';' causes loss of message)
-        // todo: sending a TC with no trailing ';' crashes the program (likely watchdog, "crash" called after to many buffer shifts)
+        // todo: sending a TC missing parts crashes the program (likely watchdog or circular buffer)
         while (!zephyrRX.readBin()); // finish reading the binary
         zephyrTX.TCAck(TCHandler(zephyr_tc));
-        zephyr_tc = NONE;
         break;
     case SAck:
         S_ack_flag = (zephAck == 1) ? ACK : NAK;

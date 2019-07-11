@@ -48,6 +48,9 @@ public:
     void RunScheduler();
     void TakeZephyrByte(uint8_t rx_char);
 
+    // Pure virtual function definition for the instrument setup function, called publicly before the loop begins
+    virtual void InstrumentSetup() = 0;
+
     // Pure virtual function definition for the instrument loop function, called at the end of each loop publicly
     virtual void InstrumentLoop() = 0;
 
