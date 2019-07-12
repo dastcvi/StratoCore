@@ -22,6 +22,8 @@ StratoCore::StratoCore(Print * zephyr_serial, Instrument_t instrument)
     S_ack_flag = NO_ACK;
     TM_ack_flag = NO_ACK;
 
+    time_valid = false;
+
     switch (instrument) {
     case FLOATS:
         zephyrTX.setDevId("FLOATS");
@@ -43,6 +45,11 @@ StratoCore::StratoCore(Print * zephyr_serial, Instrument_t instrument)
 // initialize the watchdog using the 1kHz LPO clock source to achieve a 10s WDOG
 void StratoCore::InitializeWatchdog()
 {
+    if ((RCM_SRS0 & RCM_SRS0_WDOG) != 0) {
+        log_error("Reset caused by watchdog");
+        // todo: send telemetry
+    }
+
     noInterrupts(); // disable interrupts
 
     // unlock
@@ -166,6 +173,13 @@ void StratoCore::RunScheduler()
     }
 }
 
+void log_crit_error(const char * log_info)
+{
+    Serial.print("CRITICAL: ");
+    Serial.println(log_info);
+    // todo: send as telemetry
+}
+
 void StratoCore::TakeZephyrByte(uint8_t rx_char)
 {
     zephyrRX.putChar(rx_char);
@@ -218,6 +232,8 @@ void StratoCore::UpdateTime()
 
         scheduler.UpdateScheduleTime(difference);
     }
+
+    time_valid = true;
     
     temp_str = " " + String(new_time_elements.Hour) + ":" + String(new_time_elements.Minute) + ":" + String(new_time_elements.Second);
     temp_str += ", " + String(new_time_elements.Month) + "/" + String(new_time_elements.Day) + "/" + String(new_time_elements.Year + 1970);

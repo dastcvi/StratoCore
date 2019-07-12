@@ -35,6 +35,8 @@ void log_debug(const char * log_info);
 void log_nominal(const char * log_info);
 void log_error(const char * log_info);
 
+// note: log_crit_error is defined/implemented in StratoCore for XMLWriter access
+
 // get user commands from the terminal
 ZephyrMessage_t ground_port(void);
 
