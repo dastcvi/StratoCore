@@ -46,8 +46,7 @@ StratoCore::StratoCore(Print * zephyr_serial, Instrument_t instrument)
 void StratoCore::InitializeWatchdog()
 {
     if ((RCM_SRS0 & RCM_SRS0_WDOG) != 0) {
-        log_crit_error("Reset caused by watchdog");
-        // todo: send telemetry
+        ZephyrLogCrit("Reset caused by watchdog");
     }
 
     noInterrupts(); // disable interrupts
@@ -110,7 +109,7 @@ void StratoCore::RunRouter()
     }
 
     if (now() > last_zephyr + ZEPHYR_TIMEOUT) {
-        log_crit_error("Zephyr comm loss timeout");
+        ZephyrLogCrit("Zephyr comm loss timeout");
         new_inst_mode = SAFETY;
     }
 }
@@ -173,11 +172,25 @@ void StratoCore::RunScheduler()
     }
 }
 
-void StratoCore::log_crit_error(const char * log_info)
+void StratoCore::ZephyrLogFine(const char * log_info)
 {
-    Serial.print("CRITICAL: ");
+    Serial.print("Zephyr-FINE: ");
     Serial.println(log_info);
-    // todo: send as telemetry
+    zephyrTX.TM_String(FINE, log_info);
+}
+
+void StratoCore::ZephyrLogWarn(const char * log_info)
+{
+    Serial.print("Zephyr-WARN: ");
+    Serial.println(log_info);
+    zephyrTX.TM_String(WARN, log_info);
+}
+
+void StratoCore::ZephyrLogCrit(const char * log_info)
+{
+    Serial.print("Zephyr-CRIT: ");
+    Serial.println(log_info);
+    zephyrTX.TM_String(CRIT, log_info);
 }
 
 void StratoCore::TakeZephyrByte(uint8_t rx_char)

@@ -68,7 +68,9 @@ protected: // available to StratoCore and instrument classes
     bool time_valid;
 
     // for a critical error, log to the terminal and send as telemetry
-    void log_crit_error(const char * log_info);
+    void ZephyrLogFine(const char * log_info);
+    void ZephyrLogWarn(const char * log_info);
+    void ZephyrLogCrit(const char * log_info);
 
     // Pure virtual mode functions (implemented entirely in instrument classes)
     // Using these, the StratoCore can call the mode functions of derived classes, but the
