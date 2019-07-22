@@ -18,16 +18,13 @@
 
 // define a struct for use only as a container for scheduled actions
 struct ScheduleItem_t {
-    // constructor
-    ScheduleItem_t(uint8_t act, time_t t, bool e, ScheduleItem_t * p, ScheduleItem_t * n) 
-        : action(act), time(t), exact_time (e), prev(p), next(n) { }
-
     // data
-    uint8_t action;
-    time_t time;
-    bool exact_time; // scheduled exact or relative?
     ScheduleItem_t * prev;
     ScheduleItem_t * next;
+    time_t time;
+    uint8_t action;
+    bool exact_time; // scheduled exact or relative?
+    bool in_use;
 };
 
 class StratoScheduler {
@@ -50,9 +47,11 @@ public:
     void ClearSchedule();
 
 private:
-
+    ScheduleItem_t * GetFreeItem();
     bool SchedulePush(uint8_t action, time_t schedule_time, bool exact);
     void SchedulePop(); // remove (and delete!) the first item
+
+    ScheduleItem_t item_array[MAX_SCHEDULE_SIZE] = {{0}};
 
     uint8_t schedule_size; // num items in schedule
     ScheduleItem_t * schedule_top; // pointer to first element

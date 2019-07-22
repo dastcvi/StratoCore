@@ -13,6 +13,7 @@
 StratoScheduler::StratoScheduler()
 {
     schedule_size = 0;
+    schedule_top = NULL;
 }
 
 uint8_t StratoScheduler::CheckSchedule()
@@ -77,16 +78,42 @@ void StratoScheduler::UpdateScheduleTime(int32_t seconds_adjustment)
 }
 
 // ------- schedule queue functions -------
+ScheduleItem_t * StratoScheduler::GetFreeItem()
+{
+    // if we know the schedule is full, return NULL
+    if (schedule_size == MAX_SCHEDULE_SIZE) return NULL;
+
+    // iterate through and find a free item
+    int i = 0;
+    for (i = 0; i < MAX_SCHEDULE_SIZE; i++) {
+        if (!item_array[i].in_use) break; // found a free one
+    }
+
+    // make sure there wasn't some unexpected error
+    if (item_array[i].in_use) {
+        return NULL;
+    } else {
+        return &(item_array[i]);
+    }
+}
 
 bool StratoScheduler::SchedulePush(uint8_t action, time_t schedule_time, bool exact)
 {
     if (schedule_size >= MAX_SCHEDULE_SIZE) return false;
 
     // create the new action
-    ScheduleItem_t * new_item = new ScheduleItem_t(action, schedule_time, exact, NULL, NULL);
+    ScheduleItem_t * new_item = GetFreeItem();
 
     // check that it's good
     if (new_item == NULL) return false;
+
+    // set the values for the new item
+    new_item->action = action;
+    new_item->exact_time = exact;
+    new_item->time = schedule_time;
+    new_item->next = NULL;
+    new_item->prev = NULL;
+    new_item->in_use = true;
 
     schedule_size++;
 
@@ -133,7 +160,7 @@ void StratoScheduler::SchedulePop()
 
     schedule_top = tmp->next;
 
-    delete tmp;
+    tmp->in_use = false;
 
     schedule_size--;
 }

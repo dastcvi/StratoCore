@@ -198,6 +198,7 @@ void StratoCore::TakeZephyrByte(uint8_t rx_char)
     zephyrRX.putChar(rx_char);
 }
 
+// TODO: Make more efficient (get rid of String class usage)
 void StratoCore::UpdateTime()
 {
     int32_t before, new_time, difference;
