@@ -25,6 +25,7 @@
 // the old mode once in MODE_EXIT before starting the new mode in MODE_ENTRY. In the
 // case that a shutdown warning is received, StratoCore will set the state to MODE_SHUTDOWN
 #define MODE_ENTRY      0
+#define MODE_ERROR      253
 #define MODE_SHUTDOWN   254
 #define MODE_EXIT       255
 
