@@ -2,7 +2,7 @@
  *  StratoCore.cpp
  *  Author:  Alex St. Clair
  *  Created: June 2019
- *  
+ *
  *  This file implements an Arduino library (C++ class) with core functionality
  *  for LASP Strateole payload interface boards
  */
@@ -10,12 +10,12 @@
 #include "StratoCore.h"
 #include "TimeLib.h"
 
-StratoCore::StratoCore(Print * zephyr_serial, Instrument_t instrument)
-    : zephyrTX(zephyr_serial, &Serial)
-    , zephyrRX(zephyr_serial, &Serial, instrument)
+StratoCore::StratoCore(Stream * zephyr_serial, Instrument_t instrument)
+    : zephyrTX(zephyr_serial, instrument)
+    , zephyrRX(zephyr_serial, instrument)
 {
-    inst_mode = STANDBY; // always boot to standby
-    new_inst_mode = STANDBY;
+    inst_mode = MODE_STANDBY; // always boot to standby
+    new_inst_mode = MODE_STANDBY;
     inst_substate = MODE_ENTRY; // substate starts as mode entry
 
     RA_ack_flag = NO_ACK;
@@ -24,21 +24,6 @@ StratoCore::StratoCore(Print * zephyr_serial, Instrument_t instrument)
 
     time_valid = false;
 
-    switch (instrument) {
-    case FLOATS:
-        zephyrTX.setDevId("FLOATS");
-        break;
-    case RACHUTS:
-        zephyrTX.setDevId("RACHUTS");
-        break;
-    case LPC:
-        zephyrTX.setDevId("LPC");
-        break;
-    default:
-        break;
-    }
-
-    // placement of this line here automatically captures GPS time updates
     last_zephyr = now();
 }
 
@@ -61,7 +46,7 @@ void StratoCore::InitializeWatchdog()
     WDOG_TOVALH = 0x0000; // upper bits set to 0
     WDOG_TOVALL = 0x2710; // 10000 counter at 1 kHz => 10s WDOG period
 
-    // in one write, enable the watchdog using the 1kHz LPO clock source 
+    // in one write, enable the watchdog using the 1kHz LPO clock source
     WDOG_STCTRLH = 0x01D1;
 
     interrupts(); // enable interrupts
@@ -97,37 +82,27 @@ void StratoCore::RunMode()
 
 void StratoCore::RunRouter()
 {
-    // check for and route any message from the ground port
-    ZephyrMessage_t message = ground_port();
-    if (message != NONE) RouteRXMessage(message);
-
-    // todo: consider handling multiple messages per loop
-    // todo: make reader more robust! ensure all bad messages are ignored
-    while (PARSING == zephyrRX.getNew());
-    if (zephyrRX.dataValid()) {
-        RouteRXMessage(zephyr_message); // global from XMLReader
+    // process as many messages as are available
+    while (zephyrRX.GetNewMessage()) {
+        RouteRXMessage(zephyrRX.zephyr_message);
     }
 
+    // check for Zephyr no contact timeout
     if (now() > last_zephyr + ZEPHYR_TIMEOUT) {
         ZephyrLogCrit("Zephyr comm loss timeout");
-        new_inst_mode = SAFETY;
+        new_inst_mode = MODE_SAFETY;
     }
 }
 
 void StratoCore::RouteRXMessage(ZephyrMessage_t message)
 {
-    // ignore bad messages and send NAKs when applicable
-    if (!instAck) {
-        if (message == IM) {
-            zephyrTX.IMAck(instAck);
-        }
-        return;
-    }
+    TCParseStatus_t tc_status = NO_TCs;
+    bool tc_success = true;
 
     switch (message) {
     case IM:
-        new_inst_mode = reader_mode;
-        zephyrTX.IMAck(instAck);
+        new_inst_mode = zephyrRX.zephyr_mode;
+        zephyrTX.IMAck(true);
         break;
     case GPS:
         UpdateTime();
@@ -137,22 +112,27 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
         inst_substate = MODE_SHUTDOWN;
         break;
     case TC:
-        // todo: the reader doesn't actually handle a bad CRC
-        // todo: this design only handles one TC per message (any extra chars after ';' causes loss of message)
-        // todo: sending a TC missing parts crashes the program (likely watchdog or circular buffer)
-        while (!zephyrRX.readBin()); // finish reading the binary
-        zephyrTX.TCAck(TCHandler(zephyr_tc));
+        tc_status = zephyrRX.GetTelecommand();
+        while (NO_TCs != tc_status) {
+            if (READ_TC == tc_status) {
+                tc_success &= TCHandler(zephyrRX.zephyr_tc);
+            } else {
+                tc_success = false;
+            }
+            tc_status = zephyrRX.GetTelecommand();
+        }
+        zephyrTX.TCAck(tc_success);
         break;
     case SAck:
-        S_ack_flag = (zephAck == 1) ? ACK : NAK;
+        S_ack_flag = (zephyrRX.zephyr_ack == 1) ? ACK : NAK;
         break;
     case RAAck:
-        RA_ack_flag = (zephAck == 1) ? ACK : NAK;
+        RA_ack_flag = (zephyrRX.zephyr_ack == 1) ? ACK : NAK;
         break;
     case TMAck:
-        TM_ack_flag = (zephAck == 1) ? ACK : NAK;
+        TM_ack_flag = (zephyrRX.zephyr_ack == 1) ? ACK : NAK;
         break;
-    case NONE:
+    case NO_ZEPHYR_MSG:
         break;
     default:
         log_error("Unknown message to route");
@@ -193,49 +173,24 @@ void StratoCore::ZephyrLogCrit(const char * log_info)
     zephyrTX.TM_String(CRIT, log_info);
 }
 
-void StratoCore::TakeZephyrByte(uint8_t rx_char)
-{
-    zephyrRX.putChar(rx_char);
-}
-
 // TODO: Make more efficient (get rid of String class usage)
 void StratoCore::UpdateTime()
 {
     int32_t before, new_time, difference;
     TimeElements new_time_elements;
-
-    // hours, minutes, seconds, date, month years
     String temp_str = "";
-    temp_str += (char)Time[0];
-    temp_str += (char)Time[1];
-    new_time_elements.Hour = (uint8_t) temp_str.toInt();
-    temp_str = "";
-    temp_str += (char)Time[2];
-    temp_str += (char)Time[3];
-    new_time_elements.Minute = (uint8_t) temp_str.toInt();
-    temp_str = "";
-    temp_str += (char)Time[4];
-    temp_str += (char)Time[5];
-    new_time_elements.Second = (uint8_t) temp_str.toInt();
-    temp_str = "";
-    temp_str += (char)Date[6];
-    temp_str += (char)Date[7];
-    new_time_elements.Day = (uint8_t) temp_str.toInt();
-    temp_str = "";
-    temp_str += (char)Date[4];
-    temp_str += (char)Date[5];
-    new_time_elements.Month = (uint8_t) temp_str.toInt();
-    temp_str = "";
-    temp_str += (char)Date[0];
-    temp_str += (char)Date[1];
-    temp_str += (char)Date[2];
-    temp_str += (char)Date[3];
-    new_time_elements.Year = (uint8_t) (temp_str.toInt() - 1970);
+
+    new_time_elements.Hour = zephyrRX.zephyr_gps.hour;
+    new_time_elements.Minute = zephyrRX.zephyr_gps.minute;
+    new_time_elements.Second = zephyrRX.zephyr_gps.second;
+    new_time_elements.Day = zephyrRX.zephyr_gps.day;
+    new_time_elements.Month = zephyrRX.zephyr_gps.month;
+    new_time_elements.Year = (uint8_t) (zephyrRX.zephyr_gps.year - 1970);
 
     before = now();
     new_time = makeTime(new_time_elements);
     difference = new_time - before;
-    
+
     // if the time difference is greater than the configured maximum, update
     if (difference > MAX_TIME_DRIFT || difference < -MAX_TIME_DRIFT) {
         log_nominal("Correcting time drift");
@@ -248,7 +203,7 @@ void StratoCore::UpdateTime()
     }
 
     time_valid = true;
-    
+
     temp_str = " " + String(new_time_elements.Hour) + ":" + String(new_time_elements.Minute) + ":" + String(new_time_elements.Second);
     temp_str += ", " + String(new_time_elements.Month) + "/" + String(new_time_elements.Day) + "/" + String(new_time_elements.Year + 1970);
     log_nominal(temp_str.c_str());

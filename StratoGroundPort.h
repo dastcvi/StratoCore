@@ -2,16 +2,14 @@
  *  StratoGroundPort.h
  *  Author:  Alex St. Clair
  *  Created: June 2019
- *  
+ *
  *  This file declares functions for logging debug information
- *  to a connected serial terminal, as well as for receiving
- *  commands from the terminal.
+ *  to a connected serial terminal
  */
 
 #ifndef STRATOGROUNDPORT_H
 #define STRATOGROUNDPORT_H
 
-#include "XMLReader_v3.h"
 #include "Arduino.h"
 #include "HardwareSerial.h"
 #include "WProgram.h"
@@ -35,9 +33,6 @@ void log_debug(const char * log_info);
 void log_nominal(const char * log_info);
 void log_error(const char * log_info);
 
-// note: log_crit_error is defined/implemented in StratoCore for XMLWriter access
-
-// get user commands from the terminal
-ZephyrMessage_t ground_port(void);
+// note: ZephyrLog functions are defined/implemented in StratoCore for XMLWriter access
 
 #endif /* STRATOGROUNDPORT_H */
