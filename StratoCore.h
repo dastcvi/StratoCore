@@ -2,7 +2,7 @@
  *  StratoCore.h
  *  Author:  Alex St. Clair
  *  Created: June 2019
- *  
+ *
  *  This file declares an Arduino library (C++ class) with core functionality
  *  for LASP Strateole payload interface boards
  */
@@ -12,8 +12,8 @@
 
 #include "StratoGroundPort.h"
 #include "StratoScheduler.h"
-#include "XMLReader_v3.h"
-#include "XMLWriter_v4.h"
+#include "XMLReader_v5.h"
+#include "XMLWriter_v5.h"
 #include "Arduino.h"
 #include "HardwareSerial.h"
 #include "WProgram.h"
@@ -37,7 +37,7 @@
 class StratoCore {
 public:
     // constructors/destructors
-    StratoCore(Print * zephyr_serial, Instrument_t instrument);
+    StratoCore(Stream * zephyr_serial, Instrument_t instrument);
     ~StratoCore() { };
 
     // public interface functions
@@ -46,7 +46,6 @@ public:
     void RunMode();
     void RunRouter();
     void RunScheduler();
-    void TakeZephyrByte(uint8_t rx_char);
 
     // Pure virtual function definition for the instrument setup function, called publicly before the loop begins
     virtual void InstrumentSetup() = 0;
@@ -55,15 +54,15 @@ public:
     virtual void InstrumentLoop() = 0;
 
 protected: // available to StratoCore and instrument classes
-    XMLWriter_v4 zephyrTX;
-    XMLReader_v3 zephyrRX;
+    XMLWriter zephyrTX;
+    XMLReader zephyrRX;
 
     // Scheduler
     StratoScheduler scheduler;
 
     // Set to determine the substate within a mode (always set to MODE_ENTRY when a mode is started)
     uint8_t inst_substate;
-    
+
     // Set once the onboard time has been set from a Zephyr GPS message
     bool time_valid;
 
@@ -109,7 +108,7 @@ private: // available only to StratoCore
     void UpdateTime();
 
     time_t last_zephyr;
-    
+
     // Only the Zephyr can change mode, unless 2 hr pass without comms (REQ461) -> Safety
     // InstMode_t defined in XMLReader
     InstMode_t inst_mode;
