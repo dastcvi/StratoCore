@@ -173,12 +173,11 @@ void StratoCore::ZephyrLogCrit(const char * log_info)
     zephyrTX.TM_String(CRIT, log_info);
 }
 
-// TODO: Make more efficient (get rid of String class usage)
 void StratoCore::UpdateTime()
 {
     int32_t before, new_time, difference;
     TimeElements new_time_elements;
-    String temp_str = "";
+    char gps_string[100] = {0};
 
     new_time_elements.Hour = zephyrRX.zephyr_gps.hour;
     new_time_elements.Minute = zephyrRX.zephyr_gps.minute;
@@ -204,7 +203,8 @@ void StratoCore::UpdateTime()
 
     time_valid = true;
 
-    temp_str = " " + String(new_time_elements.Hour) + ":" + String(new_time_elements.Minute) + ":" + String(new_time_elements.Second);
-    temp_str += ", " + String(new_time_elements.Month) + "/" + String(new_time_elements.Day) + "/" + String(new_time_elements.Year + 1970);
-    log_nominal(temp_str.c_str());
+    snprintf(gps_string, 100, "%u:%u:%u %u/%u/%u, SZA: %f", new_time_elements.Hour, new_time_elements.Minute, new_time_elements.Second,
+             new_time_elements.Month, new_time_elements.Day, new_time_elements.Year + 1970, zephyrRX.zephyr_gps.solar_zenith_angle);
+
+    log_nominal(gps_string);
 }

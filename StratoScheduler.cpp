@@ -2,7 +2,7 @@
  *  StratoScheduler.cpp
  *  Author:  Alex St. Clair
  *  Created: June 2019
- *  
+ *
  *  This file implements a class to perform scheduling through the
  *  StratoCore based on GPS time from the Zephyr.
  */
@@ -38,8 +38,7 @@ bool StratoScheduler::AddAction(uint8_t action, time_t seconds_from_now)
     }
 
     // calculate the time_t value given the current time, place on the queue
-    SchedulePush(action, now() + seconds_from_now, false);
-    return true;
+    return SchedulePush(action, now() + seconds_from_now, false);
 }
 
 bool StratoScheduler::AddAction(uint8_t action, TimeElements exact_time)
@@ -51,15 +50,26 @@ bool StratoScheduler::AddAction(uint8_t action, TimeElements exact_time)
     }
 
     // place on the queue
-    SchedulePush(action, makeTime(exact_time), true);
-    return true;
+    return SchedulePush(action, makeTime(exact_time), true);
 }
 
 void StratoScheduler::ClearSchedule()
 {
     while (schedule_size > 0) {
-        Serial.println(schedule_size);
         SchedulePop();
+    }
+}
+
+void StratoScheduler::PrintSchedule()
+{
+    ScheduleItem_t * itr = schedule_top;
+
+    // adjust each item
+    while (itr != NULL) {
+        Serial.print(itr->action);
+        Serial.print(",");
+        Serial.println(itr->time);
+        itr = itr->next;
     }
 }
 
@@ -160,7 +170,11 @@ void StratoScheduler::SchedulePop()
 
     schedule_top = tmp->next;
 
+    if (NULL != schedule_top) schedule_top->prev = NULL;
+
     tmp->in_use = false;
+    tmp->prev = NULL;
+    tmp->next = NULL;
 
     schedule_size--;
 }

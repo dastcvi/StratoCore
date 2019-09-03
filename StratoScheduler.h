@@ -2,7 +2,7 @@
  *  StratoScheduler.h
  *  Author:  Alex St. Clair
  *  Created: June 2019
- *  
+ *
  *  This file declares a class to perform scheduling through the
  *  StratoCore based on GPS time from the Zephyr.
  */
@@ -45,6 +45,8 @@ public:
 
     // called after every mode switch
     void ClearSchedule();
+
+    void PrintSchedule();
 
 private:
     ScheduleItem_t * GetFreeItem();
