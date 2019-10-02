@@ -12,6 +12,7 @@
 
 #include "StratoGroundPort.h"
 #include "StratoScheduler.h"
+#include "StratoSD.h"
 #include "XMLReader_v5.h"
 #include "XMLWriter_v5.h"
 #include "Arduino.h"
@@ -42,7 +43,7 @@ public:
     ~StratoCore() { };
 
     // public interface functions
-    void InitializeWatchdog();
+    void InitializeCore();
     void KickWatchdog();
     void RunMode();
     void RunRouter();
@@ -71,6 +72,9 @@ protected: // available to StratoCore and instrument classes
     void ZephyrLogFine(const char * log_info);
     void ZephyrLogWarn(const char * log_info);
     void ZephyrLogCrit(const char * log_info);
+
+    // write the current TM buffer to a file on the SD card
+    bool WriteFileTM(const char * file_prefix);
 
     // Pure virtual mode functions (implemented entirely in instrument classes)
     // Using these, the StratoCore can call the mode functions of derived classes, but the
@@ -105,6 +109,7 @@ protected: // available to StratoCore and instrument classes
     };
 
 private: // available only to StratoCore
+    void InitializeWatchdog();
     void RouteRXMessage(ZephyrMessage_t message);
     void UpdateTime();
 

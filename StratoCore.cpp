@@ -27,6 +27,17 @@ StratoCore::StratoCore(Stream * zephyr_serial, Instrument_t instrument)
     last_zephyr = now();
 }
 
+void StratoCore::InitializeCore()
+{
+    if (!StartSD()) {
+        log_error("StratoCore unable to start SD card");
+    } else {
+        log_nominal("StratoCore started SD card");
+    }
+
+    InitializeWatchdog();
+}
+
 // initialize the watchdog using the 1kHz LPO clock source to achieve a 10s WDOG
 void StratoCore::InitializeWatchdog()
 {
@@ -154,6 +165,8 @@ void StratoCore::RunScheduler()
 
 void StratoCore::ZephyrLogFine(const char * log_info)
 {
+    if (NULL == log_info) return;
+
     Serial.print("Zephyr-FINE: ");
     Serial.println(log_info);
     zephyrTX.TM_String(FINE, log_info);
@@ -161,6 +174,8 @@ void StratoCore::ZephyrLogFine(const char * log_info)
 
 void StratoCore::ZephyrLogWarn(const char * log_info)
 {
+    if (NULL == log_info) return;
+
     Serial.print("Zephyr-WARN: ");
     Serial.println(log_info);
     zephyrTX.TM_String(WARN, log_info);
@@ -168,9 +183,30 @@ void StratoCore::ZephyrLogWarn(const char * log_info)
 
 void StratoCore::ZephyrLogCrit(const char * log_info)
 {
+    if (NULL == log_info) return;
+
     Serial.print("Zephyr-CRIT: ");
     Serial.println(log_info);
     zephyrTX.TM_String(CRIT, log_info);
+}
+
+bool StratoCore::WriteFileTM(const char * file_prefix)
+{
+    char filename[64] = {0};
+    uint8_t * tm_buffer = NULL;
+    uint16_t tm_size = 0;
+
+    if (NULL == file_prefix) return false;
+
+    // prep the filename and check it was created correctly
+    if (63 < snprintf(filename, 64, "%s_%ld.dat", file_prefix, now())) return false;
+
+    // get a pointer to the TM buffer and its size
+    tm_size = zephyrTX.getTmBuffer(&tm_buffer);
+
+    bool success = FileWrite(filename, (const char *) tm_buffer, tm_size);
+
+    return success;
 }
 
 void StratoCore::UpdateTime()
