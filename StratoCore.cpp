@@ -126,7 +126,14 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
         tc_status = zephyrRX.GetTelecommand();
         while (NO_TCs != tc_status) {
             if (READ_TC == tc_status) {
-                tc_success &= TCHandler(zephyrRX.zephyr_tc);
+                // if the TC is a reset request, ack, then perform the reset, otherwise route to instrument
+                if (RESET_INST == zephyrRX.zephyr_tc) {
+                    zephyrTX.TCAck(true);
+                    delay(100);
+                    SCB_AIRCR = 0x5FA0004; // write the reset key and bit to the ARM AIRCR register
+                } else {
+                    tc_success &= TCHandler(zephyrRX.zephyr_tc);
+                }
             } else {
                 tc_success = false;
             }
