@@ -177,6 +177,7 @@ void StratoCore::ZephyrLogFine(const char * log_info)
     Serial.print("Zephyr-FINE: ");
     Serial.println(log_info);
     zephyrTX.TM_String(FINE, log_info);
+    TM_ack_flag = NO_ACK;
 }
 
 void StratoCore::ZephyrLogWarn(const char * log_info)
@@ -186,6 +187,7 @@ void StratoCore::ZephyrLogWarn(const char * log_info)
     Serial.print("Zephyr-WARN: ");
     Serial.println(log_info);
     zephyrTX.TM_String(WARN, log_info);
+    TM_ack_flag = NO_ACK;
 }
 
 void StratoCore::ZephyrLogCrit(const char * log_info)
@@ -195,6 +197,7 @@ void StratoCore::ZephyrLogCrit(const char * log_info)
     Serial.print("Zephyr-CRIT: ");
     Serial.println(log_info);
     zephyrTX.TM_String(CRIT, log_info);
+    TM_ack_flag = NO_ACK;
 }
 
 bool StratoCore::WriteFileTM(const char * file_prefix)
