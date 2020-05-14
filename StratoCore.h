@@ -39,7 +39,7 @@
 class StratoCore {
 public:
     // constructors/destructors
-    StratoCore(Stream * zephyr_serial, Instrument_t instrument);
+    StratoCore(Stream * zephyr_serial, Instrument_t instrument, Stream * dbg_serial = &Serial);
     ~StratoCore() { };
 
     // public interface functions

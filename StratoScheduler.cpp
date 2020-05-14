@@ -66,9 +66,9 @@ void StratoScheduler::PrintSchedule()
 
     // adjust each item
     while (itr != NULL) {
-        Serial.print(itr->action);
-        Serial.print(",");
-        Serial.println(itr->time);
+        debug_serial->print(itr->action);
+        debug_serial->print(",");
+        debug_serial->println(itr->time);
         itr = itr->next;
     }
 }

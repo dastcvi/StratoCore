@@ -10,7 +10,7 @@
 #include "StratoCore.h"
 #include "TimeLib.h"
 
-StratoCore::StratoCore(Stream * zephyr_serial, Instrument_t instrument)
+StratoCore::StratoCore(Stream * zephyr_serial, Instrument_t instrument, Stream * dbg_serial)
     : zephyrTX(zephyr_serial, instrument)
     , zephyrRX(zephyr_serial, instrument)
 {
@@ -23,6 +23,8 @@ StratoCore::StratoCore(Stream * zephyr_serial, Instrument_t instrument)
     TM_ack_flag = NO_ACK;
 
     time_valid = false;
+
+    debug_serial = dbg_serial; // located in StratoGroundPort
 
     last_zephyr = now();
 }
@@ -174,8 +176,8 @@ void StratoCore::ZephyrLogFine(const char * log_info)
 {
     if (NULL == log_info) return;
 
-    Serial.print("Zephyr-FINE: ");
-    Serial.println(log_info);
+    debug_serial->print("Zephyr-FINE: ");
+    debug_serial->println(log_info);
     zephyrTX.TM_String(FINE, log_info);
     TM_ack_flag = NO_ACK;
 }
@@ -184,8 +186,8 @@ void StratoCore::ZephyrLogWarn(const char * log_info)
 {
     if (NULL == log_info) return;
 
-    Serial.print("Zephyr-WARN: ");
-    Serial.println(log_info);
+    debug_serial->print("Zephyr-WARN: ");
+    debug_serial->println(log_info);
     zephyrTX.TM_String(WARN, log_info);
     TM_ack_flag = NO_ACK;
 }
@@ -194,8 +196,8 @@ void StratoCore::ZephyrLogCrit(const char * log_info)
 {
     if (NULL == log_info) return;
 
-    Serial.print("Zephyr-CRIT: ");
-    Serial.println(log_info);
+    debug_serial->print("Zephyr-CRIT: ");
+    debug_serial->println(log_info);
     zephyrTX.TM_String(CRIT, log_info);
     TM_ack_flag = NO_ACK;
 }
