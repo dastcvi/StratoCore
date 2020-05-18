@@ -202,6 +202,18 @@ void StratoCore::ZephyrLogCrit(const char * log_info)
     TM_ack_flag = NO_ACK;
 }
 
+void StratoCore::SendTMBuffer()
+{
+    // use only the first flag to report the motion
+    zephyrTX.setStateDetails(1, "TM buffer as requested");
+    zephyrTX.setStateFlagValue(1, FINE);
+    zephyrTX.setStateFlagValue(2, NOMESS);
+    zephyrTX.setStateFlagValue(3, NOMESS);
+
+    TM_ack_flag = NO_ACK;
+    zephyrTX.TM();
+}
+
 bool StratoCore::WriteFileTM(const char * file_prefix)
 {
     char filename[64] = {0};

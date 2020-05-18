@@ -73,6 +73,9 @@ protected: // available to StratoCore and instrument classes
     void ZephyrLogWarn(const char * log_info);
     void ZephyrLogCrit(const char * log_info);
 
+    // generic method to send whatever's in the TM buffer, meant for debugging
+    void SendTMBuffer();
+
     // write the current TM buffer to a file on the SD card
     bool WriteFileTM(const char * file_prefix);
 
