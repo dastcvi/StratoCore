@@ -133,6 +133,9 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
                     zephyrTX.TCAck(true);
                     delay(100);
                     SCB_AIRCR = 0x5FA0004; // write the reset key and bit to the ARM AIRCR register
+                } else if (GETTMBUFFER == zephyrRX.zephyr_tc) {
+                    SendTMBuffer();
+                    tc_success = true;
                 } else {
                     tc_success &= TCHandler(zephyrRX.zephyr_tc);
                 }
