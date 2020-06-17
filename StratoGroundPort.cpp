@@ -9,6 +9,8 @@
 
 #include "StratoGroundPort.h"
 
+Stream * debug_serial = &Serial;
+
 // definitions of functions for internal GroundPort use only
 void print_log(LOG_LEVEL_t log_level, const char * log_info);
 
@@ -34,17 +36,17 @@ void print_log(LOG_LEVEL_t log_level, const char * log_info)
 
     switch (log_level) {
     case LOG_DEBUG:
-        Serial.print("DBG: ");
+        debug_serial->print("DBG: ");
         break;
     case LOG_NOMINAL:
-        Serial.print("NOM: ");
+        debug_serial->print("NOM: ");
         break;
     case LOG_ERROR:
-        Serial.print("ERR: ");
+        debug_serial->print("ERR: ");
         break;
     default:
         break;
     }
 
-    Serial.println(log_info);
+    debug_serial->println(log_info);
 }

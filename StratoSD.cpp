@@ -7,6 +7,7 @@
  */
 
 #include "StratoSD.h"
+#include "StratoGroundPort.h"
 #include <SdFat.h>
 #include <SdFatConfig.h>
 
@@ -38,10 +39,10 @@ bool FileWrite(const char * filename, const char * buffer, int buffer_size)
 
 	file = SD.open(filename, FILE_WRITE);
 
-	Serial.print("Filename: "); Serial.println(filename);
+	debug_serial->print("Filename: "); debug_serial->println(filename);
 
 	if (!file) {
-		Serial.println("File not ok");
+		debug_serial->println("File not ok");
 		return false;
 	}
 
@@ -49,7 +50,7 @@ bool FileWrite(const char * filename, const char * buffer, int buffer_size)
 
     file.close();
 
-	Serial.print("File write ok, bytes: "); Serial.println(bytes_written);
+	debug_serial->print("File write ok, bytes: "); debug_serial->println(bytes_written);
 
 	return (bytes_written == buffer_size);
 }

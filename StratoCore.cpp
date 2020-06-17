@@ -10,7 +10,7 @@
 #include "StratoCore.h"
 #include "TimeLib.h"
 
-StratoCore::StratoCore(Stream * zephyr_serial, Instrument_t instrument)
+StratoCore::StratoCore(Stream * zephyr_serial, Instrument_t instrument, Stream * dbg_serial)
     : zephyrTX(zephyr_serial, instrument)
     , zephyrRX(zephyr_serial, instrument)
 {
@@ -23,6 +23,8 @@ StratoCore::StratoCore(Stream * zephyr_serial, Instrument_t instrument)
     TM_ack_flag = NO_ACK;
 
     time_valid = false;
+
+    debug_serial = dbg_serial; // located in StratoGroundPort
 
     last_zephyr = now();
 }
@@ -131,6 +133,9 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
                     zephyrTX.TCAck(true);
                     delay(100);
                     SCB_AIRCR = 0x5FA0004; // write the reset key and bit to the ARM AIRCR register
+                } else if (GETTMBUFFER == zephyrRX.zephyr_tc) {
+                    SendTMBuffer();
+                    tc_success = true;
                 } else {
                     tc_success &= TCHandler(zephyrRX.zephyr_tc);
                 }
@@ -174,8 +179,8 @@ void StratoCore::ZephyrLogFine(const char * log_info)
 {
     if (NULL == log_info) return;
 
-    Serial.print("Zephyr-FINE: ");
-    Serial.println(log_info);
+    debug_serial->print("Zephyr-FINE: ");
+    debug_serial->println(log_info);
     zephyrTX.TM_String(FINE, log_info);
     TM_ack_flag = NO_ACK;
 }
@@ -184,8 +189,8 @@ void StratoCore::ZephyrLogWarn(const char * log_info)
 {
     if (NULL == log_info) return;
 
-    Serial.print("Zephyr-WARN: ");
-    Serial.println(log_info);
+    debug_serial->print("Zephyr-WARN: ");
+    debug_serial->println(log_info);
     zephyrTX.TM_String(WARN, log_info);
     TM_ack_flag = NO_ACK;
 }
@@ -194,10 +199,22 @@ void StratoCore::ZephyrLogCrit(const char * log_info)
 {
     if (NULL == log_info) return;
 
-    Serial.print("Zephyr-CRIT: ");
-    Serial.println(log_info);
+    debug_serial->print("Zephyr-CRIT: ");
+    debug_serial->println(log_info);
     zephyrTX.TM_String(CRIT, log_info);
     TM_ack_flag = NO_ACK;
+}
+
+void StratoCore::SendTMBuffer()
+{
+    // use only the first flag to report the motion
+    zephyrTX.setStateDetails(1, "TM buffer as requested");
+    zephyrTX.setStateFlagValue(1, FINE);
+    zephyrTX.setStateFlagValue(2, NOMESS);
+    zephyrTX.setStateFlagValue(3, NOMESS);
+
+    TM_ack_flag = NO_ACK;
+    zephyrTX.TM();
 }
 
 bool StratoCore::WriteFileTM(const char * file_prefix)
