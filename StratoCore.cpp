@@ -27,6 +27,8 @@ StratoCore::StratoCore(Stream * zephyr_serial, Instrument_t instrument, Stream *
     debug_serial = dbg_serial; // located in StratoGroundPort
 
     last_zephyr = now();
+
+    tcs_remaining = 0;
 }
 
 void StratoCore::InitializeCore()
@@ -100,6 +102,12 @@ void StratoCore::RunRouter()
         RouteRXMessage(zephyrRX.zephyr_message);
     }
 
+    // handle one TC per loop
+    if (tcs_remaining > 0) {
+        tcs_remaining--;
+        NextTelecommand();
+    }
+
     // check for Zephyr no contact timeout
     if (now() > last_zephyr + ZEPHYR_TIMEOUT) {
         ZephyrLogCrit("Zephyr comm loss timeout");
@@ -109,9 +117,6 @@ void StratoCore::RunRouter()
 
 void StratoCore::RouteRXMessage(ZephyrMessage_t message)
 {
-    TCParseStatus_t tc_status = NO_TCs;
-    bool tc_success = true;
-
     switch (message) {
     case IM:
         new_inst_mode = zephyrRX.zephyr_mode;
@@ -125,26 +130,11 @@ void StratoCore::RouteRXMessage(ZephyrMessage_t message)
         inst_substate = MODE_SHUTDOWN;
         break;
     case TC:
-        tc_status = zephyrRX.GetTelecommand();
-        while (NO_TCs != tc_status) {
-            if (READ_TC == tc_status) {
-                // if the TC is a reset request, ack, then perform the reset, otherwise route to instrument
-                if (RESET_INST == zephyrRX.zephyr_tc) {
-                    zephyrTX.TCAck(true);
-                    delay(100);
-                    SCB_AIRCR = 0x5FA0004; // write the reset key and bit to the ARM AIRCR register
-                } else if (GETTMBUFFER == zephyrRX.zephyr_tc) {
-                    SendTMBuffer();
-                    tc_success = true;
-                } else {
-                    tc_success &= TCHandler(zephyrRX.zephyr_tc);
-                }
-            } else {
-                tc_success = false;
-            }
-            tc_status = zephyrRX.GetTelecommand();
-        }
-        zephyrTX.TCAck(tc_success);
+        if (tcs_remaining > 0) ZephyrLogWarn("TC received too quickly! Last TC overwritten");
+        tcs_remaining = zephyrRX.num_tcs;
+
+        // we've successfully parsed the TC
+        zephyrTX.TCAck(true);
         break;
     case SAck:
         S_ack_flag = (zephyrRX.zephyr_ack == 1) ? ACK : NAK;
@@ -270,4 +260,32 @@ void StratoCore::UpdateTime()
              new_time_elements.Month, new_time_elements.Day, new_time_elements.Year + 1970, zephyrRX.zephyr_gps.solar_zenith_angle);
 
     log_nominal(gps_string);
+}
+
+void StratoCore::NextTelecommand()
+{
+    TCParseStatus_t tc_status = zephyrRX.GetTelecommand();
+
+    switch (tc_status) {
+    case READ_TC:
+        // if the TC is a reset request, ack, then perform the reset, otherwise route to instrument
+        if (RESET_INST == zephyrRX.zephyr_tc) {
+            zephyrTX.TCAck(true);
+            delay(100);
+            SCB_AIRCR = 0x5FA0004; // write the reset key and bit to the ARM AIRCR register
+        } else if (GETTMBUFFER == zephyrRX.zephyr_tc) {
+            SendTMBuffer();
+        } else {
+            TCHandler(zephyrRX.zephyr_tc);
+        }
+        break;
+    case TC_ERROR:
+        snprintf(log_array, LOG_ARRAY_SIZE, "Bad command at TC position %u", zephyrRX.curr_tc);
+        ZephyrLogWarn(log_array);
+        break;
+    case NO_TCs:
+    default:
+        tcs_remaining = 0;
+        break;
+    }
 }

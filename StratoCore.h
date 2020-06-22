@@ -36,6 +36,9 @@
 // number of seconds without zephyr comms after which safety mode is entered
 #define ZEPHYR_TIMEOUT  3600 // 3600 s = 2 hrs
 
+// a statically-allocated log array is maintained by StratoCore
+#define LOG_ARRAY_SIZE  101
+
 class StratoCore {
 public:
     // constructors/destructors
@@ -68,6 +71,9 @@ protected: // available to StratoCore and instrument classes
     // Set once the onboard time has been set from a Zephyr GPS message
     bool time_valid;
 
+    // keep a statically allocated array for creating up to 100 char TM state messages
+    char log_array[LOG_ARRAY_SIZE] = {0};
+
     // for a critical error, log to the terminal and send as telemetry
     void ZephyrLogFine(const char * log_info);
     void ZephyrLogWarn(const char * log_info);
@@ -89,7 +95,7 @@ protected: // available to StratoCore and instrument classes
     virtual void EndOfFlightMode() = 0;
 
     // Pure virtual function definition for the instrument telecommand handler - returns ACK/NAK
-    virtual bool TCHandler(Telecommand_t telecommand) = 0;
+    virtual void TCHandler(Telecommand_t telecommand) = 0;
 
     // Pure virtual function definition for the instrument action handler
     virtual void ActionHandler(uint8_t action) = 0;
@@ -115,8 +121,11 @@ private: // available only to StratoCore
     void InitializeWatchdog();
     void RouteRXMessage(ZephyrMessage_t message);
     void UpdateTime();
+    void NextTelecommand();
 
     time_t last_zephyr;
+
+    uint8_t tcs_remaining;
 
     // Only the Zephyr can change mode, unless 2 hr pass without comms (REQ461) -> Safety
     // InstMode_t defined in XMLReader
