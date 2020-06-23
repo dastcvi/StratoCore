@@ -268,15 +268,23 @@ void StratoCore::NextTelecommand()
 
     switch (tc_status) {
     case READ_TC:
-        // if the TC is a reset request, ack, then perform the reset, otherwise route to instrument
-        if (RESET_INST == zephyrRX.zephyr_tc) {
+        // check for generic TCs before routing to the instrument
+        switch (zephyrRX.zephyr_tc) {
+        case RESET_INST:
             zephyrTX.TCAck(true);
             delay(100);
             SCB_AIRCR = 0x5FA0004; // write the reset key and bit to the ARM AIRCR register
-        } else if (GETTMBUFFER == zephyrRX.zephyr_tc) {
+            break;
+        case GETTMBUFFER:
             SendTMBuffer();
-        } else {
+            break;
+        case SENDSTATE:
+            snprintf(log_array, LOG_ARRAY_SIZE, "Current mode: %u, substate: %u", inst_mode, inst_substate);
+            ZephyrLogFine(log_array);
+            break;
+        default:
             TCHandler(zephyrRX.zephyr_tc);
+            break;
         }
         break;
     case TC_ERROR:
