@@ -270,6 +270,9 @@ void StratoCore::NextTelecommand()
     case READ_TC:
         // check for generic TCs before routing to the instrument
         switch (zephyrRX.zephyr_tc) {
+        case NULL_TELECOMMAND:
+            log_nominal("Null telecommand");
+            break;
         case RESET_INST:
             zephyrTX.TCAck(true);
             delay(100);
