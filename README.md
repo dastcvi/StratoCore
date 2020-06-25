@@ -14,17 +14,26 @@ All of the instruments use [Teensy 3.6](https://www.sparkfun.com/products/14057)
 
 ## Components
 
+The diagram below shows a simplified view of the components that StratoCore provides, as well as the components that it requires of deriving classes. Blue represents methods implemented in StratoCore, orange represents pure virtual methods that must be implemented in derived instrument classes.
+
 <img src="/Documentation/component_diagram.png" alt="/Documentation/component_diagram.png" width="900"/>
 
 ## Control Structure
 
-StratoCore uses a cyclic executive loop running at 1 Hz with best-effort timing. The diagram below shows the loop structure. Blue represents methods implemented in StratoCore, orange represents pure virtual methods that must be implemented in derived instrument classes.
+StratoCore uses a cyclic executive loop running at 1 Hz with best-effort timing. The diagram below shows the loop structure. Again, blue represents methods implemented in StratoCore, orange represents pure virtual methods that must be implemented in derived instrument classes.
 
 <p align="center">
   <img src="/Documentation/control_loop.png" alt="/Documentation/control_loop.png" width="150"/>
 </p>
 
+## GPS/Time Keeper
+
+## Watchdog
+
 ## Scheduler
 
 <img src="/Documentation/scheduler.png" alt="/Documentation/scheduler.png" width="900"/>
 
+## Router
+
+## Mode Manager
