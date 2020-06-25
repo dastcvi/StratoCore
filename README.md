@@ -20,7 +20,9 @@ All of the instruments use [Teensy 3.6](https://www.sparkfun.com/products/14057)
 
 StratoCore uses a cyclic executive loop running at 1 Hz with best-effort timing. The diagram below shows the loop structure. Blue represents methods implemented in StratoCore, orange represents pure virtual methods that must be implemented in derived instrument classes.
 
-<img src="/Documentation/control_loop.png" alt="/Documentation/control_loop.png" width="200"/>
+<p align="center">
+  <img src="/Documentation/control_loop.png" alt="/Documentation/control_loop.png" width="150"/>
+</p>
 
 ## Scheduler
 
